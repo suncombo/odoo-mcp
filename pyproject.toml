@@ -1,0 +1,13 @@
+[project]
+name = "odoo-mcp"
+version = "0.1.0"
+description = "MCP Server for Odoo ERP - generic CRUD, search, and schema exploration"
+requires-python = ">=3.10"
+dependencies = ["fastmcp>=2.0"]
+
+[project.scripts]
+odoo-mcp = "odoo_mcp.server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
