@@ -186,5 +186,39 @@ def list_fields(model: str, attributes: list | None = None) -> dict | str:
         return _handle_error(e)
 
 
+@mcp.tool()
+def execute_method(
+    model: str,
+    method: str,
+    args: list | None = None,
+    kwargs: dict | None = None,
+) -> str:
+    """Execute any public method on an Odoo model via XML-RPC.
+
+    Odoo only allows calling public methods (not starting with '_').
+    This tool covers workflow actions, business logic, and any method
+    not already provided by the other CRUD tools.
+
+    Args:
+        model: Model name, e.g. "sale.order"
+        method: Public method name, e.g. "action_confirm"
+        args: Positional arguments as a list. Typically [record_ids, ...].
+            e.g. [[1, 2]] to call method on records 1 and 2.
+        kwargs: Keyword arguments as a dict, e.g. {"force": true}.
+
+    Examples:
+        Confirm a sale order:
+            model="sale.order", method="action_confirm", args=[[5]]
+        Check access rights:
+            model="res.partner", method="check_access_rights", args=["write"], kwargs={"raise_exception": false}
+        Call onchange:
+            model="sale.order", method="onchange", args=[[1], {"partner_id": 3}, ["partner_id"], {"partner_id": ""}]
+    """
+    try:
+        return _get_client().execute_kw(model, method, args, kwargs)
+    except Exception as e:
+        return _handle_error(e)
+
+
 def main():
     mcp.run()
