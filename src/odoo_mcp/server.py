@@ -8,7 +8,27 @@ from fastmcp import FastMCP
 
 from odoo_mcp.client import OdooClient
 
-mcp = FastMCP("Odoo MCP Server")
+mcp = FastMCP(
+    "Odoo MCP Server",
+    instructions="""\
+Odoo ERP via XML-RPC. Always specify fields in search_read to reduce payload.
+
+Gotchas:
+- create already wraps values in a list internally — pass a plain dict, NOT [dict].
+- execute_method args is a list of positional args: e.g. copy([10209]) → args=[[10209]], write([id], vals) → args=[[id], {"name": "X"}].
+- Do NOT call multiple tools in parallel on this server — sequential only, or later calls get "Sibling tool call errored".
+
+Domain syntax: [["field", "op", value]] — op: =, !=, like, ilike, in, not in, >, <, >=, <=, =?, child_of
+  Logic: "&" (AND, default), "|" (OR), "!" (NOT) as prefix operators.
+  OR example: ["|", ["name", "ilike", "gold"], ["name", "ilike", "silver"]]
+  AND+OR: ["&", ["active", "=", true], "|", ["name", "ilike", "a"], ["name", "ilike", "b"]]
+
+Common patterns:
+  Translate: execute_method model="product.template" method="write" args=[[id], {"name": "中文名"}] kwargs={"context": {"lang": "zh_TW"}}
+  Copy: execute_method model="product.template" method="copy" args=[[id]] kwargs={"default": {"name": "New"}}
+  Confirm SO: execute_method model="sale.order" method="action_confirm" args=[[id]]
+""",
+)
 
 _client: OdooClient | None = None
 
