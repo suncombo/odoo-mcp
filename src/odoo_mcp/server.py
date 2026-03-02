@@ -2,6 +2,7 @@
 
 import os
 import xmlrpc.client
+from typing import Any
 
 from fastmcp import FastMCP
 
@@ -24,23 +25,23 @@ def _get_client() -> OdooClient:
     return _client
 
 
-def _handle_error(e: Exception) -> str:
+def _handle_error(e: Exception) -> dict[str, str]:
     if isinstance(e, ConnectionRefusedError):
         url = os.environ.get("ODOO_URL", "http://localhost:8069")
-        return f"Cannot connect to Odoo at {url}"
+        return {"error": f"Cannot connect to Odoo at {url}"}
     if isinstance(e, PermissionError):
-        return str(e)
+        return {"error": str(e)}
     if isinstance(e, xmlrpc.client.Fault):
         fault = e.faultString
         if "AccessError" in fault or "AccessDenied" in fault:
-            return f"Access denied: {fault}"
+            return {"error": f"Access denied: {fault}"}
         if "MissingError" in fault or "does not exist" in fault.lower():
-            return f"Not found: {fault}"
-        return f"Odoo error: {fault}"
+            return {"error": f"Not found: {fault}"}
+        return {"error": f"Odoo error: {fault}"}
     if isinstance(e, OSError):
         url = os.environ.get("ODOO_URL", "http://localhost:8069")
-        return f"Cannot connect to Odoo at {url}: {e}"
-    return f"Error: {e}"
+        return {"error": f"Cannot connect to Odoo at {url}: {e}"}
+    return {"error": f"Error: {e}"}
 
 
 @mcp.tool()
@@ -51,7 +52,7 @@ def search_read(
     limit: int = 80,
     offset: int = 0,
     order: str | None = None,
-) -> list[dict] | str:
+) -> dict[str, Any]:
     """Search and read records from an Odoo model.
 
     Args:
@@ -68,15 +69,16 @@ def search_read(
             kwargs["fields"] = fields
         if order is not None:
             kwargs["order"] = order
-        return _get_client().execute_kw(
+        result = _get_client().execute_kw(
             model, "search_read", [domain or []], kwargs
         )
+        return {"result": result}
     except Exception as e:
         return _handle_error(e)
 
 
 @mcp.tool()
-def create(model: str, values: dict) -> int | str:
+def create(model: str, values: dict) -> dict[str, Any]:
     """Create a new record in an Odoo model.
 
     Args:
@@ -84,16 +86,19 @@ def create(model: str, values: dict) -> int | str:
         values: Field values, e.g. {"name": "Test", "email": "test@example.com"}
 
     Returns:
-        The ID of the newly created record.
+        A dict with either:
+            - "result": the ID of the newly created record on success.
+            - "error": an error message string if the operation fails.
     """
     try:
-        return _get_client().execute_kw(model, "create", [values])
+        result = _get_client().execute_kw(model, "create", [values])
+        return {"result": result}
     except Exception as e:
         return _handle_error(e)
 
 
 @mcp.tool()
-def write(model: str, ids: list[int], values: dict) -> bool | str:
+def write(model: str, ids: list[int], values: dict) -> dict[str, Any]:
     """Update existing records in an Odoo model.
 
     Args:
@@ -102,13 +107,14 @@ def write(model: str, ids: list[int], values: dict) -> bool | str:
         values: Field values to update, e.g. {"name": "New Name"}
     """
     try:
-        return _get_client().execute_kw(model, "write", [ids, values])
+        result = _get_client().execute_kw(model, "write", [ids, values])
+        return {"result": result}
     except Exception as e:
         return _handle_error(e)
 
 
 @mcp.tool()
-def unlink(model: str, ids: list[int]) -> bool | str:
+def unlink(model: str, ids: list[int]) -> dict[str, Any]:
     """Delete records from an Odoo model.
 
     Args:
@@ -116,13 +122,14 @@ def unlink(model: str, ids: list[int]) -> bool | str:
         ids: List of record IDs to delete.
     """
     try:
-        return _get_client().execute_kw(model, "unlink", [ids])
+        result = _get_client().execute_kw(model, "unlink", [ids])
+        return {"result": result}
     except Exception as e:
         return _handle_error(e)
 
 
 @mcp.tool()
-def read(model: str, ids: list[int], fields: list | None = None) -> list[dict] | str:
+def read(model: str, ids: list[int], fields: list | None = None) -> dict[str, Any]:
     """Read records by their IDs from an Odoo model.
 
     Args:
@@ -134,13 +141,14 @@ def read(model: str, ids: list[int], fields: list | None = None) -> list[dict] |
         kwargs = {}
         if fields is not None:
             kwargs["fields"] = fields
-        return _get_client().execute_kw(model, "read", [ids], kwargs)
+        result = _get_client().execute_kw(model, "read", [ids], kwargs)
+        return {"result": result}
     except Exception as e:
         return _handle_error(e)
 
 
 @mcp.tool()
-def list_models(search_term: str | None = None) -> list[dict] | str:
+def list_models(search_term: str | None = None) -> dict[str, Any]:
     """List available Odoo models.
 
     Args:
@@ -157,18 +165,19 @@ def list_models(search_term: str | None = None) -> list[dict] | str:
                 ["model", "ilike", search_term],
                 ["name", "ilike", search_term],
             ]
-        return _get_client().execute_kw(
+        result = _get_client().execute_kw(
             "ir.model",
             "search_read",
             [domain],
             {"fields": ["name", "model"], "order": "model asc"},
         )
+        return {"result": result}
     except Exception as e:
         return _handle_error(e)
 
 
 @mcp.tool()
-def list_fields(model: str, attributes: list | None = None) -> dict | str:
+def list_fields(model: str, attributes: list | None = None) -> dict[str, Any]:
     """Get field definitions for an Odoo model.
 
     Args:
@@ -181,7 +190,8 @@ def list_fields(model: str, attributes: list | None = None) -> dict | str:
         kwargs = {}
         if attributes is not None:
             kwargs["attributes"] = attributes
-        return _get_client().execute_kw(model, "fields_get", [], kwargs)
+        result = _get_client().execute_kw(model, "fields_get", [], kwargs)
+        return {"result": result}
     except Exception as e:
         return _handle_error(e)
 
@@ -192,7 +202,7 @@ def execute_method(
     method: str,
     args: list | None = None,
     kwargs: dict | None = None,
-) -> str:
+) -> dict[str, Any]:
     """Execute any public method on an Odoo model via XML-RPC.
 
     Odoo only allows calling public methods (not starting with '_').
@@ -215,7 +225,8 @@ def execute_method(
             model="sale.order", method="onchange", args=[[1], {"partner_id": 3}, ["partner_id"], {"partner_id": ""}]
     """
     try:
-        return _get_client().execute_kw(model, method, args, kwargs)
+        result = _get_client().execute_kw(model, method, args, kwargs)
+        return {"result": result}
     except Exception as e:
         return _handle_error(e)
 
