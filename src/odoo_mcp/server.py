@@ -246,7 +246,7 @@ def execute_method(
     """
     try:
         result = _get_client().execute_kw(model, method, args, kwargs)
-        return {"result": result}
+        return {"result": result if result is not None else True}
     except Exception as e:
         return _handle_error(e)
 
