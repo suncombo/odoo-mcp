@@ -86,7 +86,9 @@ def create(model: str, values: dict) -> dict[str, Any]:
         values: Field values, e.g. {"name": "Test", "email": "test@example.com"}
 
     Returns:
-        The ID of the newly created record.
+        A dict with either:
+            - "result": the ID of the newly created record on success.
+            - "error": an error message string if the operation fails.
     """
     try:
         result = _get_client().execute_kw(model, "create", [values])
