@@ -16,7 +16,6 @@ Odoo ERP via XML-RPC. Always specify fields in search_read to reduce payload.
 Gotchas:
 - create already wraps values in a list internally — pass a plain dict, NOT [dict].
 - execute_method args is a list of positional args: e.g. copy([10209]) → args=[[10209]], write([id], vals) → args=[[id], {"name": "X"}].
-- Do NOT call multiple tools in parallel on this server — sequential only, or later calls get "Sibling tool call errored".
 
 Domain syntax: [["field", "op", value]] — op: =, !=, like, ilike, in, not in, >, <, >=, <=, =?, child_of
   Logic: "&" (AND, default), "|" (OR), "!" (NOT) as prefix operators.
