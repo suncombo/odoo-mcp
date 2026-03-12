@@ -1,10 +1,26 @@
 """Odoo MCP Server - generic CRUD, search, and schema exploration."""
 
+import json
 import os
 import xmlrpc.client
-from typing import Any
+from typing import Annotated, Any
 
+from pydantic import BeforeValidator
 from fastmcp import FastMCP
+
+
+def _parse_json_str(v: Any) -> Any:
+    """Coerce JSON strings to Python objects (LLMs sometimes pass arrays as strings)."""
+    if isinstance(v, str):
+        try:
+            return json.loads(v)
+        except (json.JSONDecodeError, ValueError):
+            return v
+    return v
+
+
+JsonList = Annotated[list, BeforeValidator(_parse_json_str)]
+JsonDict = Annotated[dict, BeforeValidator(_parse_json_str)]
 
 from odoo_mcp.client import OdooClient
 
@@ -66,8 +82,8 @@ def _handle_error(e: Exception) -> dict[str, str]:
 @mcp.tool()
 def search_read(
     model: str,
-    domain: list | None = None,
-    fields: list | None = None,
+    domain: JsonList | None = None,
+    fields: JsonList | None = None,
     limit: int = 80,
     offset: int = 0,
     order: str | None = None,
@@ -97,7 +113,7 @@ def search_read(
 
 
 @mcp.tool()
-def create(model: str, values: dict) -> dict[str, Any]:
+def create(model: str, values: JsonDict) -> dict[str, Any]:
     """Create a new record in an Odoo model.
 
     Args:
@@ -117,7 +133,7 @@ def create(model: str, values: dict) -> dict[str, Any]:
 
 
 @mcp.tool()
-def write(model: str, ids: list[int], values: dict) -> dict[str, Any]:
+def write(model: str, ids: JsonList, values: JsonDict) -> dict[str, Any]:
     """Update existing records in an Odoo model.
 
     Args:
@@ -133,7 +149,7 @@ def write(model: str, ids: list[int], values: dict) -> dict[str, Any]:
 
 
 @mcp.tool()
-def unlink(model: str, ids: list[int]) -> dict[str, Any]:
+def unlink(model: str, ids: JsonList) -> dict[str, Any]:
     """Delete records from an Odoo model.
 
     Args:
@@ -148,7 +164,7 @@ def unlink(model: str, ids: list[int]) -> dict[str, Any]:
 
 
 @mcp.tool()
-def read(model: str, ids: list[int], fields: list | None = None) -> dict[str, Any]:
+def read(model: str, ids: JsonList, fields: JsonList | None = None) -> dict[str, Any]:
     """Read records by their IDs from an Odoo model.
 
     Args:
@@ -196,7 +212,7 @@ def list_models(search_term: str | None = None) -> dict[str, Any]:
 
 
 @mcp.tool()
-def list_fields(model: str, attributes: list | None = None) -> dict[str, Any]:
+def list_fields(model: str, attributes: JsonList | None = None) -> dict[str, Any]:
     """Get field definitions for an Odoo model.
 
     Args:
@@ -219,8 +235,8 @@ def list_fields(model: str, attributes: list | None = None) -> dict[str, Any]:
 def execute_method(
     model: str,
     method: str,
-    args: list | None = None,
-    kwargs: dict | None = None,
+    args: JsonList | None = None,
+    kwargs: JsonDict | None = None,
 ) -> dict[str, Any]:
     """Execute any public method on an Odoo model via XML-RPC.
 

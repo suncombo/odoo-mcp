@@ -1,6 +1,6 @@
 [project]
 name = "suncombo-odoo-mcp"
-version = "0.2.4"
+version = "0.2.6"
 description = "MCP Server for Odoo ERP - generic CRUD, search, and schema exploration"
 requires-python = ">=3.10"
 dependencies = ["fastmcp>=2.0"]
